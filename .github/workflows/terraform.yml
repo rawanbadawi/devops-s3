@@ -22,16 +22,8 @@ jobs:
         with:
           terraform_version: 1.4.2
           # cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
-      - name: Get environment 
-        id: environmentPR
-        if: github.event_name == 'pull_request'
         env:
-          ENVIORNMENT: ${{ github.event.pull_request.base.ref }}
-      - name: Get environment 
-        id: environment
-        if: github.event_name != 'pull_request'
-        env:
-          ENVIORNMENT: ${{ github.ref_name }}
+          ENVIORNMENT: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.ref || github.ref_name }}
       - name: Check Environment
         id: check
         run: echo ${{ env.ENVIRONMENT }}
