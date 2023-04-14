@@ -1,0 +1,93 @@
+name: "Terraform apply"
+on:
+  push:
+    branches:
+      - dev
+      - stg
+      - prd
+
+jobs:
+  terraform:
+    name: "Terraform"
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.PRIVATE_TOKEN }} 
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.4.2
+          # cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+      - name: Terraform Format
+        id: fmt
+        run: terraform fmt -check
+        continue-on-error: true
+
+      - name: Terraform Init
+        id: init
+        run: terraform init -backend-config=./environment/${{ github.ref_name }}/backend.tf
+        env:
+          GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+      
+      - name: Terraform Validate
+        id: validate
+        run: terraform validate -no-color
+
+      - name: Terraform Plan
+        id: plan
+        run: |
+          terraform init \
+          -backend-config=-backend-config=./environment/${{ github.ref_name }}/backend.tf \
+          terraform plan -out tfplan.plan -var-file='./environments/${{ github.ref_name }}/terraform.tfvars"
+          continue-on-error: true
+          env:
+            GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }} 
+        - name: 'Save Plan'
+          uses: actions/upload-artifact@v2
+          with:
+            name: tfplan.plan
+            path: ./${{ github.ref_name }}/tfplan.plan
+
+      - name: Terraform Plan Status
+        if: steps.plan.outcome == 'failure'
+        run: exit 1
+    deploy:
+      needs: plan
+      # The type of runner that the job will run on
+      runs-on: ubuntu-latest
+      # Add "id-token" with the intended permissions.
+      permissions:
+        contents: 'read'
+        id-token: 'write'
+      # Steps represent a sequence of tasks that will be executed as part of the job
+
+    - id: 'tfsetup'
+      name: Setup Terraform
+      uses: hashicorp/setup-terraform@v1
+      with:
+        cli_config_credentials_token: ${{ steps.auth.outputs.access_token }}
+
+    - uses: actions/download-artifact@v2
+      with:
+        name: tfplan.plan
+        path: ./examples/poc/
+
+    - run: |-
+        cd ./examples/poc/
+        terraform init \
+          -backend-config="bucket=$STATE_BUCKET" \
+          -backend-config="prefix=$GITHUB_REPOSITORY/$TF_VAR_stage" 
+        terraform apply -auto-approve tfplan.plan
+      - name: Terraform Apply
+        id: apply
+        run: terraform apply -auto-approve -input=false -var-file='./environments/${{ github.ref_name }}/terraform.tfvars'
+        env:
+          GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+
+      - name: Terraform Apply Status
+        if: steps.apply.outcome == 'failure'
+        run: exit 1

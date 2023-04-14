@@ -1,11 +1,10 @@
-name: "Terraform"
+name: "Terraform plan and test"
 on:
-  push:
+  pull_request:
     branches:
       - dev
       - stg
       - prd
-  pull_request:
 jobs:
   terraform:
     name: "Terraform"
@@ -35,7 +34,7 @@ jobs:
 
       - name: Terraform Init
         id: init
-        run: terraform init -backend-config=./environment/${{ env.ENVIRONMENT }}/backend.tf
+        run: terraform init -backend-config=./environment/${{ github.event.pull_request.base.ref }}/backend.tf
         env:
           GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
       
@@ -45,7 +44,7 @@ jobs:
 
       - name: Terraform Plan
         id: plan
-        run: terraform plan -no-color -input=false -var-file='./environments/${{ env.ENVIRONMENT }}/terraform.tfvars'
+        run: terraform plan -no-color -input=false -var-file='./environments/${{ github.event.pull_request.base.ref }}/terraform.tfvars'
         continue-on-error: true
         env:
           GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }} 
@@ -77,9 +76,3 @@ jobs:
       - name: Terraform Plan Status
         if: steps.plan.outcome == 'failure'
         run: exit 1
-
-      - name: Terraform Apply
-        if:  (${{ env.ENVIRONMENT }}== 'dev' || ${{ env.ENVIRONMENT }} == 'stg' || ${{ env.ENVIRONMENT }} == 'prd')  && ${{ env.ENVIRONMENT }} == 'push'
-        run: terraform apply -auto-approve -input=false -var-file='./environments/${{ env.ENVIRONMENT }}/terraform.tfvars'
-        env:
-          GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
