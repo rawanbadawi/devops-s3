@@ -16,14 +16,10 @@
 name: Terraform plan
 on:
   push:
-    branches:
+    pull_request:
       - dev
       - stg
       - prd
-  pull_request:
-    - dev
-    - stg
-    - prd
 env:
   WORKLOAD_IDENTITY_PROVIDER: projects/504579259344/locations/global/workloadIdentityPools/github/providers/github-actions
   SERVICE_ACCOUNT: tsting@rbadawi-host-vpc.iam.gserviceaccount.com
