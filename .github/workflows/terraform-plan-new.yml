@@ -14,7 +14,6 @@
 
 
 name: Terraform plan
-name: Terraform plan
 on:
   push:
     pull_request:
