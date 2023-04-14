@@ -21,12 +21,6 @@ jobs:
         with:
           terraform_version: 1.4.2
           # cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
-        env:
-          ENVIORNMENT: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.ref || github.ref_name }}
-      - name: Check Environment
-        id: check
-        run: echo ${{ env.ENVIRONMENT }}
-
       - name: Terraform Format
         id: fmt
         run: terraform fmt -check
