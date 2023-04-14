@@ -22,9 +22,10 @@ on:
       - stg
       - prd
   push:
-    - dev
-    - stg
-    - prd
+    branches:
+      - dev
+      - stg
+      - prd
 env:
   WORKLOAD_IDENTITY_PROVIDER: projects/504579259344/locations/global/workloadIdentityPools/github/providers/github-actions
   SERVICE_ACCOUNT: tsting@rbadawi-host-vpc.iam.gserviceaccount.com
