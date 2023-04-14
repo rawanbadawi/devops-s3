@@ -14,15 +14,10 @@
 
 
 name: Terraform plan
+name: Terraform plan
 on:
-  pull_request:
-    types: [opened, reopened]
-    branches:
-      - dev
-      - stg
-      - prd
   push:
-    branches:
+    pull_request:
       - dev
       - stg
       - prd
