@@ -55,7 +55,7 @@ jobs:
         cli_config_credentials_token: ${{ steps.auth.outputs.access_token }}
     - run: |-
         terraform init \
-        -backend-config=./environment/${{ github.base_ref }}/backend.tf
+        -backend-config=./environment/${{ github.event.pull_request.base.ref }}/backend.tf
         terraform validate
   
   # Plan
@@ -88,8 +88,8 @@ jobs:
         cli_config_credentials_token: ${{ steps.auth.outputs.access_token }}
     - run: |-
         terraform init \
-        -backend-config="./environment/${{  github.base_ref  }}/backend.tf"
-        terraform plan -var-file="./environment/${{  github.base_ref }}/terraform.tfvars"
+        -backend-config="./environment/${{ github.event.pull_request.base.ref }}/backend.tf"
+        terraform plan -var-file="./environment/${{ github.event.pull_request.base.ref }}/terraform.tfvars"
     - name: Update Pull Request
       uses: actions/github-script@v6
       env:
