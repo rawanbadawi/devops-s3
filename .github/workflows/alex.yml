@@ -55,7 +55,8 @@ jobs:
 
     - run: |-
         terraform init \
-          -backend-config="prefix=$GITHUB_REPOSITORY/$TF_VAR_stage" 
+        -backend-config="prefix=$GITHUB_REPOSITORY/$TF_VAR_stage"
+
         terraform validate
   
   # Plan
@@ -88,7 +89,7 @@ jobs:
         cli_config_credentials_token: ${{ steps.auth.outputs.access_token }}
     - run: |-
         terraform init \
-        -backend-config="./environment/${{ github.ref_name }}/backend.tf" \
+        -backend-config="./environment/${{ github.ref_name }}/backend.tf"
         terraform plan -out tfplan.plan -var-file="./environment/${{ github.ref_name }}/terraform.tfvars"
     - name: 'Save Plan'
       uses: actions/upload-artifact@v2
