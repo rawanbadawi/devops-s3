@@ -21,12 +21,6 @@ jobs:
         with:
           terraform_version: 1.4.2
           # cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
-        env:
-          ENVIORNMENT: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.ref || github.ref_name }}
-      - name: Check Environment
-        id: check
-        run: echo ${{ env.ENVIRONMENT }}
-
       - name: Terraform Format
         id: fmt
         run: terraform fmt -check
@@ -34,7 +28,7 @@ jobs:
 
       - name: Terraform Init
         id: init
-        run: terraform init -backend-config=./environment/${{ github.event.pull_request.base.ref }}/backend.tf
+        run: terraform init -backend-config=./environment/${{ env.GITHUB_BASE_REF }}/backend.tf
         env:
           GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
       
@@ -44,7 +38,7 @@ jobs:
 
       - name: Terraform Plan
         id: plan
-        run: terraform plan -no-color -input=false -var-file='./environments/${{ github.event.pull_request.base.ref }}/terraform.tfvars'
+        run: terraform plan -no-color -input=false -var-file='./environments/${{ env.GITHUB_BASE_REF }}/terraform.tfvars'
         continue-on-error: true
         env:
           GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }} 
