@@ -55,7 +55,7 @@ jobs:
 
     - run: |-
         terraform init \
-        -backend-config="./environment/${{ github.ref_name }}/backend.tf"
+        -backend-config="./environment/${{ github.ref }}/backend.tf"
         terraform validate
   
   # Plan
@@ -88,8 +88,8 @@ jobs:
         cli_config_credentials_token: ${{ steps.auth.outputs.access_token }}
     - run: |-
         terraform init \
-        -backend-config="./environment/${{ github.ref_name }}/backend.tf"
-        terraform plan -var-file="./environment/${{ github.ref_name }}/terraform.tfvars"
+        -backend-config="./environment/${{ github.ref }}/backend.tf"
+        terraform plan -var-file="./environment/${{ github.ref }}/terraform.tfvars"
   # Deploy
   deploy:
     needs: plan
@@ -121,5 +121,5 @@ jobs:
 
     - run: |-
         terraform init \
-        -backend-config="./environment/${{ github.ref_name }}/backend.tf"  \
-        terraform apply -auto-approve  -var-file="./environment/${{ github.ref_name }}/terraform.tfvars"
+        -backend-config="./environment/${{ github.ref }}/backend.tf"  \
+        terraform apply -auto-approve  -var-file="./environment/${{ github.ref }}/terraform.tfvars"
