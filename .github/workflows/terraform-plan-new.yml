@@ -1,0 +1,115 @@
+# Copyright 2022 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
+name: Terraform plan
+on:
+  push:
+    pull_request:
+      - dev
+      - stg
+      - prd
+env:
+  WORKLOAD_IDENTITY_PROVIDER: projects/504579259344/locations/global/workloadIdentityPools/github/providers/github-actions
+  SERVICE_ACCOUNT: tsting@rbadawi-host-vpc.iam.gserviceaccount.com
+
+jobs:
+  # Validate
+  validate:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+    # Add "id-token" with the intended permissions.
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+    - uses: 'actions/checkout@v2'
+
+    - id: 'auth'
+      name: 'Authenticate to Google Cloud'
+      uses: 'google-github-actions/auth@v0'
+      with:
+        token_format: 'access_token'
+        WORKLOAD_IDENTITY_PROVIDER: ${{ env.WORKLOAD_IDENTITY_PROVIDER }}
+        SERVICE_ACCOUNT: ${{ env.SERVICE_ACCOUNT }}
+        access_token_lifetime: '3600s' # optional, default: '3600s' (1 hour)
+
+    # Install the latest version of Terraform CLI and configure the Terraform CLI configuration file with a Terraform Cloud user API token
+    - id: 'tfsetup'
+      name: Setup Terraform
+      uses: hashicorp/setup-terraform@v1
+      with:
+        cli_config_credentials_token: ${{ steps.auth.outputs.access_token }}
+    - run: |-
+        terraform init \
+        -backend-config="prefix=$GITHUB_REPOSITORY/$TF_VAR_stage"
+        terraform validate
+  
+  # Plan
+  plan:
+    needs: validate
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+    # Add "id-token" with the intended permissions.
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+    - uses: 'actions/checkout@v2'
+
+    - id: 'auth'
+      name: 'Authenticate to Google Cloud'
+      uses: 'google-github-actions/auth@v0'
+      with:
+        token_format: 'access_token'
+        WORKLOAD_IDENTITY_PROVIDER: ${{ env.WORKLOAD_IDENTITY_PROVIDER }}
+        SERVICE_ACCOUNT: ${{ env.SERVICE_ACCOUNT }}
+        access_token_lifetime: '3600s' # optional, default: '3600s' (1 hour)
+
+    # Install the latest version of Terraform CLI and configure the Terraform CLI configuration file with a Terraform Cloud user API token
+    - id: 'tfsetup'
+      name: Setup Terraform
+      uses: hashicorp/setup-terraform@v1
+      with:
+        cli_config_credentials_token: ${{ steps.auth.outputs.access_token }}
+    - run: |-
+        terraform init \
+        -backend-config="./environment/${{ github.event.pull_request.base.ref }}/backend.tf"
+        terraform plan -var-file="./environment/${{ github.event.pull_request.base.ref }}/terraform.tfvars"
+    - name: Update Pull Request
+      uses: actions/github-script@v6
+      env:
+        PLAN: ${{  steps.plan.outputs.stdout }}
+      with:
+        github-token: ${{  secrets.GITHUB_TOKEN }}
+        script: |
+          #### Terraform Validation 🤖\`${{ steps.validate.tfsetup.outcome }}\`
+          #### Terraform Plan 📖\`${{ steps.plan.tfsetup.outcome }}\`
+          <details><summary>Show Plan</summary>
+          \`\`\`terraform\n
+          ${process.env.PLAN}
+          \`\`\`
+          </details>
+          *Pushed by: @${{  github.actor }}, Action: \`${{  github.event_name }}\`*`;
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: output
+          })
+    - name: Terraform Plan Status
+      if: steps.plan.tfsetup.outcome == 'failure'
+      run: exit 1

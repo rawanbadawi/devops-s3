@@ -90,13 +90,7 @@ jobs:
     - run: |-
         terraform init \
         -backend-config="./environment/${{ github.ref_name }}/backend.tf"
-        terraform plan -out tfplan.plan -var-file="./environment/${{ github.ref_name }}/terraform.tfvars"
-    - name: 'Save Plan'
-      uses: actions/upload-artifact@v2
-      with:
-        name: tfplan.plan
-        path: ./${{ github.ref_name }}/tfplan.plan
-
+        terraform plan -var-file="./environment/${{ github.ref_name }}/terraform.tfvars"
   # Deploy
   deploy:
     needs: plan
@@ -124,14 +118,9 @@ jobs:
       name: Setup Terraform
       uses: hashicorp/setup-terraform@v1
       with:
-        cli_config_credentials_token: ${{ steps.auth.outputs.access_token }}
-
-    - uses: actions/download-artifact@v2
-      with:
-        name: ${{ github.ref_name }}/tfplan.plan
-        path: ./
+        cli_config_credentials_token: ${{ steps.auth.outputs.access_token }
 
     - run: |-
         terraform init \
         -backend-config="./environment/${{ github.ref_name }}/backend.tf"  \
-        terraform apply -auto-approve tfplan.plan  -var-file="./environment/${{ github.ref_name }}/terraform.tfvars"
+        terraform apply -auto-approve  -var-file="./environment/${{ github.ref_name }}/terraform.tfvars"
