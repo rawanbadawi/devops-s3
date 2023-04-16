@@ -63,7 +63,7 @@ jobs:
         id: init-on-development
         run: |-
           TF_LOG=DEBUG terraform init \
-          -backend_config_file='./environment/${{ env.ENVIRONMENT }}/backend.tf'
+          -backend_config='./environment/${{ env.ENVIRONMENT }}/backend.tf'
 
       - name: Terraform Validate
         id: validate-on-development
