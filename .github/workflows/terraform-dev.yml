@@ -17,6 +17,9 @@ on:
     branches:
       - dev
   pull_request:
+      branches:
+        - dev
+
 env:
   WORKLOAD_IDENTITY_PROVIDER: projects/504579259344/locations/global/workloadIdentityPools/github/providers/github-actions
   SERVICE_ACCOUNT: tsting@rbadawi-host-vpc.iam.gserviceaccount.com
@@ -45,6 +48,7 @@ jobs:
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.4.1
+          cli_config_credentials_token: ${{ steps.auth.outputs.access_token }}
 
       - name: Terraform Format
         id: fmt-on-development
@@ -64,8 +68,7 @@ jobs:
         id: plan-on-development
         if: github.event_name == 'pull_request'
         run: terraform plan -var-file=./environment/${{ env.ENVIRONMENT }}/terraform.tfvars -no-color
-        with:
-          cli_config_credentials_token: ${{ steps.auth.outputs.access_token }}
+          
         continue-on-error: true
 
       - name: Attach plan to PR
@@ -107,7 +110,5 @@ jobs:
         id: terraform-apply-on-development
         if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
         run: terraform apply -var-file=./environment/${{ env.ENVIRONMENT }}/terraform.tfvars -auto-approve
-        with:
-          cli_config_credentials_token: ${{ steps.auth.outputs.access_token }}
 
       # End Terraform Development Steps
