@@ -119,7 +119,7 @@ jobs:
 
       - name: Terraform Apply
         id: apply
-        if: github.ref == 'refs/heads/${{ env.ENVIRONMENT }}' && github.event_name == 'push'
+        if:  github.event_name != 'pull_request' && github.ref == 'refs/heads/${{ env.ENVIRONMENT }}'
         run: terraform apply -var-file='environment/${{ env.ENVIRONMENT }}/terraform.tfvars' -var='environment=${{ env.ENVIRONMENT }}'  -auto-approve
 
       # End Terraform Development Steps
