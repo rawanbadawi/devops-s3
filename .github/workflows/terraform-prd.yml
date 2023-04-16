@@ -37,7 +37,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
       - id: 'get-context'
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
