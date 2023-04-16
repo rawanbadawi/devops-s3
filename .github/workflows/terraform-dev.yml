@@ -36,8 +36,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-        #with:
-        #  github_token: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
       - id: 'auth'
         name: 'Authenticate to Google Cloud'
         uses: 'google-github-actions/auth@v1'
@@ -81,8 +81,8 @@ jobs:
         if: github.event_name == 'pull_request'
         env:
           PLAN: "terraform\n${{ steps.plan-on-development.outputs.stdout }}"
-        #with:
-        #  github-token: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt-on-development.outcome }}\`
             #### Terraform Initialization ⚙️\`${{ steps.init-on-development.outcome }}\`
