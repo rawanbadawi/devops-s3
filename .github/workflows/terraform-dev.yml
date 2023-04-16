@@ -62,9 +62,7 @@ jobs:
       - name: Terraform Init
         id: init-on-development
         run: |-
-          ls 
-          cat './environment/dev/backend.tf'
-          terraform init \
+          TF_LOG=TRACE terraform init \
           -backend-config='./environment/dev/backend.tf'
 
       - name: Terraform Validate
