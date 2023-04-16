@@ -17,6 +17,8 @@ on:
     branches:
       - dev
   pull_request:
+    branches:
+      - dev
 
 env:
   WORKLOAD_IDENTITY_PROVIDER: projects/504579259344/locations/global/workloadIdentityPools/github/providers/github-actions
@@ -118,7 +120,7 @@ jobs:
 
       - name: Terraform Apply
         id: apply
-        if:  github.event_name === 'push' && github.ref === 'refs/heads/${{ env.ENVIRONMENT }}' && github.event_name !== 'pull_request'
+        if:  github.event_name == 'push' && github.ref == 'refs/heads/dev'
         run: terraform apply -out tf.plan
 
       # End Terraform Development Steps
