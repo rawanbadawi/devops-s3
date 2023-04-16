@@ -120,7 +120,7 @@ jobs:
 
       - name: Terraform Apply
         id: apply
-        if:  github.event_name == 'push' && github.ref == 'refs/heads/${{ env.ENVIRONMENT }}' && github.event_name != 'pull_request'
+        if:  github.event_name === 'push' && github.ref === 'refs/heads/${{ env.ENVIRONMENT }}' && github.event_name !== 'pull_request'
         run: terraform apply -out tf.plan
 
       # End Terraform Development Steps
