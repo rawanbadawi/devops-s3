@@ -4,6 +4,6 @@ module "gcs" {
   version    = "~> 3.4"
   project_id = var.project_id
   names      = ["${var.name}-${var.environment}"]
-  prefix     = ""
+  prefix     = "test"
   location   = var.location
 }
