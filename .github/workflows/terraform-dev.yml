@@ -61,7 +61,9 @@ jobs:
 
       - name: Terraform Init
         id: init-on-development
-        run: terraform init -backend-config='environment/dev/backend.tf'
+        run: |-
+          terraform init \
+          -backend-config="./environment/dev/backend.tf"
 
       - name: Terraform Validate
         id: validate-on-development
@@ -113,6 +115,6 @@ jobs:
       - name: Terraform Apply
         id: terraform-apply-on-development
         if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
-        run: terraform apply -var-file=./environment/dev/terraform.tfvars -auto-approve
+        run: terraform apply -var-file='environment/dev/terraform.tfvars' -auto-approve
 
       # End Terraform Development Steps
