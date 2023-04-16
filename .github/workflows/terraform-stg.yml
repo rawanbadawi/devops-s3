@@ -1,0 +1,126 @@
+# Copyright 2022 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+name: "Terraform"
+on:
+  push:
+    branches:
+      - stg
+  pull_request:
+    branches:
+      - stg
+
+env:
+  WORKLOAD_IDENTITY_PROVIDER: projects/504579259344/locations/global/workloadIdentityPools/github/providers/github-actions
+  SERVICE_ACCOUNT: tsting@rbadawi-host-vpc.iam.gserviceaccount.com
+  ENVIRONMENT: stg
+
+jobs:
+  terraform:
+    name: "Terraform on Staging Environment"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+      - id: 'get-context'
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+          GITHUB_EVENT: ${{ github.event_name }}
+          GITHUB_REF: ${{ github.ref }}
+        run: echo "$GITHUB_EVENT $GITHUB_REF"
+      - id: 'auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v1'
+        with:
+          token_format: 'access_token'
+          WORKLOAD_IDENTITY_PROVIDER: ${{ env.WORKLOAD_IDENTITY_PROVIDER }}
+          SERVICE_ACCOUNT: ${{ env.SERVICE_ACCOUNT }}
+          access_token_lifetime: '3600s' # optional, default: '3600s' (1 hour)
+      # Terraform steps
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.4.1
+          cli_config_credentials_token: ${{ steps.auth.outputs.access_token }}
+          terraform_wrapper: false
+
+      - name: Terraform Format
+        id: fmt
+        run: terraform fmt -check
+        continue-on-error: true
+
+      - name: Terraform Init
+        id: init
+        run: terraform init -backend-config='environment/${{ env.ENVIRONMENT }}/backend.tfbackend' -reconfigure
+        shell: bash
+
+      - name: Terraform Validate
+        id: validate
+        run: terraform validate -no-color
+        shell: bash
+
+
+      - name: Terraform Plan
+        id: plan
+        run: |-
+          terraform plan -var-file='environment/${{ env.ENVIRONMENT }}/terraform.tfvars' -var='environment=${{ env.ENVIRONMENT }}' -out tf.plan
+        shell: bash
+
+      - name: Attach plan to PR
+        id: attach-plan
+        uses: actions/github-script@v6
+        if: github.event_name == 'pull_request'
+        env:
+          PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
+            #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
+            #### Terraform Validation 🤖\`${{ steps.validate.outcome }}\`
+            #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
+
+            <details><summary>Show Plan</summary>
+
+            \`\`\`\n
+            ${process.env.PLAN}
+            \`\`\`
+
+            </details>
+
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
+
+      - name: Terraform Plan Status
+        if: steps.plan.outcome == 'failure'
+        run: exit 1
+
+      - name: Terraform Apply
+        id: apply
+        if:  github.event_name == 'push' && github.ref == 'refs/heads/stg'
+        run: terraform apply tf.plan
+
+      # End Terraform Staging Steps
