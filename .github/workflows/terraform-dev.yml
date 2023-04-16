@@ -63,7 +63,7 @@ jobs:
         id: init-on-development
         run: |-
           TF_LOG=DEBUG terraform init \
-          -backend_config_file='./environment/dev/backend.tf'
+          -backend_config_file='./environment/${{ env.ENVIRONMENT }}/backend.tf'
 
       - name: Terraform Validate
         id: validate-on-development
@@ -73,7 +73,7 @@ jobs:
       - name: Terraform Plan
         id: plan-on-development
         if: github.event_name == 'pull_request'
-        run: terraform plan -var-file='environment/dev/terraform.tfvars' -no-color
+        run: terraform plan -var-file='environment/${{ env.ENVIRONMENT }}/terraform.tfvars' -no-color
           
         continue-on-error: true
 
