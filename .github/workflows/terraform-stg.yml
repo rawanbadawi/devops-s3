@@ -27,7 +27,7 @@ env:
 
 jobs:
   terraform-dev-deployment:
-    name: "Terraform on Development Environment"
+    name: "Terraform"
     runs-on: ubuntu-latest
     permissions:
       contents: 'read'
@@ -53,7 +53,6 @@ jobs:
         with:
           terraform_version: 1.4.1
           cli_config_credentials_token: ${{ steps.auth.outputs.access_token }}
-          terraform_wrapper: false
 
       - name: Terraform Format
         id: fmt
@@ -62,25 +61,22 @@ jobs:
 
       - name: Terraform Init
         id: init
-        run: terraform init -backend-config='environment/${{ env.ENVIRONMENT }}/backend.tfbackend' -reconfigure
-        shell: bash
+        run: terraform init -backend-config='environment/dev/backend.tfbackend' -reconfigure
 
       - name: Terraform Validate
         id: validate
         run: terraform validate -no-color
-        shell: bash
 
 
       - name: Terraform Plan
         id: plan
         if: github.event_name == 'pull_request'
-        run: -|
-          terraform plan -var-file='environment/${{ env.ENVIRONMENT }}/terraform.tfvars' -var='environment=${{ env.ENVIRONMENT }}' -no-color
-          terraform show -no-color tf.plan 2>&1 > /tmp/plan.txt
-        shell: bash
+        run: terraform plan -var-file='environment/${{ env.ENVIRONMENT }}/terraform.tfvars' -var='environment=${{ env.ENVIRONMENT }}'
+          
+        continue-on-error: true
 
       - name: Attach plan to PR
-        id: attach-plan
+        id: attach
         uses: actions/github-script@v6
         if: github.event_name == 'pull_request'
         env:
@@ -88,31 +84,18 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const fs = require("fs");
-            const plan = fs.readFileSync("/tmp/plan.txt", "utf8");
-            const maxGitHubBodyCharacters = 65536;
+            const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
+            #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
+            #### Terraform Validation 🤖\`${{ steps.validate.outcome }}\`
+            #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
 
-            function chunkSubstr(str, size) {
-              const numChunks = Math.ceil(str.length / size)
-              const chunks = new Array(numChunks)
-              for (let i = 0, o = 0; i < numChunks; ++i, o += size) {
-                chunks[i] = str.substr(o, size)
-              }
-              return chunks
-            }
+            <details><summary>Show Plan</summary>
 
-            // Split the Terraform plan into chunks if it's too big and can't fit into the GitHub Action
-            var plans = chunkSubstr(plan, maxGitHubBodyCharacters); 
-            for (let i = 0; i < plans.length; i++) {
-              const output = `### ${{ inputs.plan-title }} Part # ${i + 1}
-              #### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
-              #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
-              #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
-              <details><summary>Show Plan</summary>
-              \`\`\`\n
-              ${plans[i]}
-              \`\`\`
-              </details>
+            \`\`\`\n
+            ${process.env.PLAN}
+            \`\`\`
+
+            </details>
 
             *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
 
@@ -128,8 +111,8 @@ jobs:
         run: exit 1
 
       - name: Terraform Apply
-        id: apply
-        if: github.ref == 'refs/heads/${{ env.ENVIRONMENT }}' && github.event_name == 'push'
-        run: terraform apply -var-file='environment/${{ env.ENVIRONMENT }}/terraform.tfvars' -var='environment=${{ env.ENVIRONMENT }}'  -auto-approve
+        id: terraform-apply
+        if: github.ref == 'refs/heads/stg' && github.event_name == 'push'
+        run: terraform apply -var-file='environment/stg/terraform.tfvars' -var='environment=${{ env.ENVIRONMENT }}'  -auto-approve
 
       # End Terraform Development Steps
