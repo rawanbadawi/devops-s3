@@ -26,8 +26,8 @@ env:
   ENVIRONMENT: prd
 
 jobs:
-  terraform-dev-deployment:
-    name: "Terraform on Development Environment"
+  terraform:
+    name: "Terraform on Production Environment"
     runs-on: ubuntu-latest
     permissions:
       contents: 'read'
@@ -53,6 +53,7 @@ jobs:
         with:
           terraform_version: 1.4.1
           cli_config_credentials_token: ${{ steps.auth.outputs.access_token }}
+          terraform_wrapper: false
 
       - name: Terraform Format
         id: fmt
@@ -62,18 +63,21 @@ jobs:
       - name: Terraform Init
         id: init
         run: terraform init -backend-config='environment/${{ env.ENVIRONMENT }}/backend.tfbackend' -reconfigure
+        shell: bash
 
       - name: Terraform Validate
         id: validate
         run: terraform validate -no-color
+        shell: bash
 
 
       - name: Terraform Plan
         id: plan
         if: github.event_name == 'pull_request'
-        run: terraform plan -var-file='environment/${{ env.ENVIRONMENT }}/terraform.tfvars' -no-color
-          
-        continue-on-error: true
+        run: -|
+          terraform plan -var-file='environment/${{ env.ENVIRONMENT }}/terraform.tfvars' -var='environment=${{ env.ENVIRONMENT }}' -no-color \
+          terraform show -no-color tf.plan 2>&1 > /tmp/plan.txt
+        shell: bash
 
       - name: Attach plan to PR
         id: attach-plan
@@ -82,20 +86,33 @@ jobs:
         env:
           PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
         with:
-          github-token: ${{ input.GITHUB_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
-            #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
-            #### Terraform Validation 🤖\`${{ steps.validate.outcome }}\`
-            #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
+            const fs = require("fs");
+            const plan = fs.readFileSync("/tmp/plan.txt", "utf8");
+            const maxGitHubBodyCharacters = 65536;
 
-            <details><summary>Show Plan</summary>
+            function chunkSubstr(str, size) {
+              const numChunks = Math.ceil(str.length / size)
+              const chunks = new Array(numChunks)
+              for (let i = 0, o = 0; i < numChunks; ++i, o += size) {
+                chunks[i] = str.substr(o, size)
+              }
+              return chunks
+            }
 
-            \`\`\`\n
-            ${process.env.PLAN}
-            \`\`\`
-
-            </details>
+            // Split the Terraform plan into chunks if it's too big and can't fit into the GitHub Action
+            var plans = chunkSubstr(plan, maxGitHubBodyCharacters); 
+            for (let i = 0; i < plans.length; i++) {
+              const output = `### ${{ inputs.plan-title }} Part # ${i + 1}
+              #### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
+              #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
+              #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
+              <details><summary>Show Plan</summary>
+              \`\`\`\n
+              ${plans[i]}
+              \`\`\`
+              </details>
 
             *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
 
@@ -105,7 +122,7 @@ jobs:
               repo: context.repo.repo,
               body: output
             })
-        # you will get warning on this action see 
+
       - name: Terraform Plan Status
         if: steps.plan.outcome == 'failure'
         run: exit 1
@@ -113,6 +130,6 @@ jobs:
       - name: Terraform Apply
         id: apply
         if: github.ref == 'refs/heads/${{ env.ENVIRONMENT }}' && github.event_name == 'push'
-        run: terraform apply -var-file='environment/${{ env.ENVIRONMENT }}/terraform.tfvars' -auto-approve
+        run: terraform apply -var-file='environment/${{ env.ENVIRONMENT }}/terraform.tfvars' -var='environment=${{ env.ENVIRONMENT }}'  -auto-approve
 
       # End Terraform Development Steps
