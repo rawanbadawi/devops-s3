@@ -41,7 +41,8 @@ jobs:
       - id: 'get-context'
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
-        run: echo "$GITHUB_CONTEXT"
+          GITHUB_EVENT: $ {{ github.event_name }}
+        run: echo "$GITHUB_EVENT"
       - id: 'auth'
         name: 'Authenticate to Google Cloud'
         uses: 'google-github-actions/auth@v1'
