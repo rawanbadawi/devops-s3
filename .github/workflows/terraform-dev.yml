@@ -121,6 +121,6 @@ jobs:
       - name: Terraform Apply
         id: apply
         if:  github.event_name == 'push' && github.ref == 'refs/heads/dev'
-        run: terraform apply -out tf.plan
+        run: terraform apply tf.plan
 
       # End Terraform Development Steps
