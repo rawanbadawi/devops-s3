@@ -149,8 +149,15 @@ jobs:
       id-token: 'write'
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-    - uses: 'actions/checkout@v2'
-
+    - uses: 'actions/checkout@v3'
+      with: 
+        token: ${{ secrets.GITHUB_TOKEN }}
+    - id: download
+      name: 'download plan'
+      uses: actions/download-artifact@v2
+      with:
+        name: tfplan.plan
+        path: ./  
     - id: 'auth'
       name: 'Authenticate to Google Cloud'
       uses: 'google-github-actions/auth@v0'
@@ -167,10 +174,6 @@ jobs:
       with:
         cli_config_credentials_token: ${{ steps.auth.outputs.access_token }}
 
-    - uses: actions/download-artifact@v2
-      with:
-        name: tfplan.plan
-        path: ./  
       - name: Terraform Apply
         id: apply
         if:  github.event_name == 'push' && github.ref == 'refs/heads/dev'
