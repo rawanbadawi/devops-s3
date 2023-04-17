@@ -26,13 +26,12 @@ env:
   ENVIRONMENT: dev
 
 jobs:
-  terraform:
+  validate:
     name: "Terraform on Development Environment"
     runs-on: ubuntu-latest
     permissions:
       contents: 'read'
       id-token: 'write'
-      pull-requests: write
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -70,52 +69,114 @@ jobs:
         id: validate
         run: terraform validate -no-color
         shell: bash
+  plan:
+    if: github.event_name == 'pull_request'
+    needs: validate
+    runs-on: ubuntu-latest
+    # Add "id-token" with the intended permissions.
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+      pull-requests: write
+        # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+    - uses: 'actions/checkout@v2'
 
+    - id: 'auth'
+      name: 'Authenticate to Google Cloud'
+      uses: 'google-github-actions/auth@v0'
+      with:
+          token_format: 'access_token'
+          WORKLOAD_IDENTITY_PROVIDER: ${{ env.WORKLOAD_IDENTITY_PROVIDER }}
+          SERVICE_ACCOUNT: ${{ env.SERVICE_ACCOUNT }}
+          access_token_lifetime: '3600s' # optional, default: '3600s' (1 hour)
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: 1.4.1
+        cli_config_credentials_token: ${{ steps.auth.outputs.access_token }}
+        terraform_wrapper: false      
+    - name: Terraform Init
+      id: init
+      run: terraform init -backend-config='environment/${{ env.ENVIRONMENT }}/backend.tfbackend' -reconfigure
+      shell: bash
+    - name: Terraform Plan
+      id: plan
+      run: |-
+        terraform plan -out tfplan.plan -var-file='environment/${{ env.ENVIRONMENT }}/terraform.tfvars' -var='environment=${{ env.ENVIRONMENT }}' -out tf.plan
+      shell: bash
+    - name: 'Save Plan'
+      uses: actions/upload-artifact@v2
+      with:
+        name: tfplan.plan
+        path: ./tfplan.plan
+    - name: Attach plan to PR
+      id: attach-plan
+      uses: actions/github-script@v6
+      env:
+        PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
+          #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
+          #### Terraform Validation 🤖\`${{ steps.validate.outcome }}\`
+          #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
 
-      - name: Terraform Plan
-        id: plan
-        run: |-
-          terraform plan -var-file='environment/${{ env.ENVIRONMENT }}/terraform.tfvars' -var='environment=${{ env.ENVIRONMENT }}' -out tf.plan
-        shell: bash
+          <details><summary>Show Plan</summary>
 
-      - name: Attach plan to PR
-        id: attach-plan
-        uses: actions/github-script@v6
-        if: github.event_name == 'pull_request'
-        env:
-          PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
-            #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
-            #### Terraform Validation 🤖\`${{ steps.validate.outcome }}\`
-            #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
+          \`\`\`\n
+          ${process.env.PLAN}
+          \`\`\`
 
-            <details><summary>Show Plan</summary>
+          </details>
 
-            \`\`\`\n
-            ${process.env.PLAN}
-            \`\`\`
+          *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
 
-            </details>
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: output
+          })
 
-            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
+    - name: Terraform Plan Status
+      if: steps.plan.outcome == 'failure'
+      run: exit 1
+  deploy:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+    - uses: 'actions/checkout@v2'
 
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: output
-            })
+    - id: 'auth'
+      name: 'Authenticate to Google Cloud'
+      uses: 'google-github-actions/auth@v0'
+      with:
+        token_format: 'access_token'
+        WORKLOAD_IDENTITY_PROVIDER: ${{ env.WORKLOAD_IDENTITY_PROVIDER }}
+        SERVICE_ACCOUNT: ${{ env.SERVICE_ACCOUNT }}
+        access_token_lifetime: '300s' # optional, default: '3600s' (1 hour)
 
-      - name: Terraform Plan Status
-        if: steps.plan.outcome == 'failure'
-        run: exit 1
+    # Install the latest version of Terraform CLI and configure the Terraform CLI configuration file with a Terraform Cloud user API token
+    - id: 'tfsetup'
+      name: Setup Terraform
+      uses: hashicorp/setup-terraform@v1
+      with:
+        cli_config_credentials_token: ${{ steps.auth.outputs.access_token }}
 
+    - uses: actions/download-artifact@v2
+      with:
+        name: tfplan.plan
+        path: ./  
       - name: Terraform Apply
         id: apply
         if:  github.event_name == 'push' && github.ref == 'refs/heads/dev'
-        run: terraform apply tf.plan
+        run: |-
+          terraform init -backend-config='environment/${{ env.ENVIRONMENT }}/backend.tfbackend' -reconfigureterraform init -backend-config='environment/${{ env.ENVIRONMENT }}/backend.tfbackend' -reconfigure 
+          terraform apply tf.plan \
+          
 
       # End Terraform Development Steps
