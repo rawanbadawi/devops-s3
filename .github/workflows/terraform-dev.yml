@@ -166,7 +166,6 @@ jobs:
         WORKLOAD_IDENTITY_PROVIDER: ${{ env.WORKLOAD_IDENTITY_PROVIDER }}
         SERVICE_ACCOUNT: ${{ env.SERVICE_ACCOUNT }}
         access_token_lifetime: '300s' # optional, default: '3600s' (1 hour)
-
     # Install the latest version of Terraform CLI and configure the Terraform CLI configuration file with a Terraform Cloud user API token
     - id: 'tfsetup'
       name: Setup Terraform
@@ -174,12 +173,12 @@ jobs:
       with:
         cli_config_credentials_token: ${{ steps.auth.outputs.access_token }}
 
-      - name: Terraform Apply
-        id: apply
-        if:  github.event_name == 'push' && github.ref == 'refs/heads/dev'
-        run: |-
-          terraform init -backend-config='environment/${{ env.ENVIRONMENT }}/backend.tfbackend' -reconfigureterraform init -backend-config='environment/${{ env.ENVIRONMENT }}/backend.tfbackend' -reconfigure 
-          terraform apply tf.plan \
-          
+    - name: Terraform Apply
+      id: apply
+      if:  github.event_name == 'push' && github.ref == 'refs/heads/dev'
+      run: |-
+        terraform init -backend-config='environment/${{ env.ENVIRONMENT }}/backend.tfbackend' -reconfigureterraform init -backend-config='environment/${{ env.ENVIRONMENT }}/backend.tfbackend' -reconfigure 
+        terraform apply tf.plan 
+        
 
       # End Terraform Development Steps
