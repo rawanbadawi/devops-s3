@@ -144,6 +144,8 @@ jobs:
       if: steps.plan.outcome == 'failure'
       run: exit 1
   deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-latest
     permissions:
       contents: 'read'
       id-token: 'write'
@@ -175,7 +177,6 @@ jobs:
 
     - name: Terraform Apply
       id: apply
-      if:  github.event_name == 'push' && github.ref == 'refs/heads/dev'
       run: |-
         terraform init -backend-config='environment/${{ env.ENVIRONMENT }}/backend.tfbackend' -reconfigureterraform init -backend-config='environment/${{ env.ENVIRONMENT }}/backend.tfbackend' -reconfigure 
         terraform apply tf.plan    
