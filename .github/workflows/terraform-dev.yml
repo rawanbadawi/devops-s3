@@ -109,7 +109,7 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: tfplan.plan
-        path: ./tfplan.plan
+        path: tfplan.plan
     - name: Attach plan to PR
       id: attach-plan
       uses: actions/github-script@v6
@@ -159,7 +159,7 @@ jobs:
       uses: actions/download-artifact@v2
       with:
         name: tfplan.plan
-        path: ./  
+        path: .  
     - id: 'auth'
       name: 'Authenticate to Google Cloud'
       uses: 'google-github-actions/auth@v0'
