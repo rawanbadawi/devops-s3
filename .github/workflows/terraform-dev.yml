@@ -178,7 +178,6 @@ jobs:
       if:  github.event_name == 'push' && github.ref == 'refs/heads/dev'
       run: |-
         terraform init -backend-config='environment/${{ env.ENVIRONMENT }}/backend.tfbackend' -reconfigureterraform init -backend-config='environment/${{ env.ENVIRONMENT }}/backend.tfbackend' -reconfigure 
-        terraform apply tf.plan 
-        
+        terraform apply tf.plan    
 
       # End Terraform Development Steps
