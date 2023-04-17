@@ -40,7 +40,6 @@ jobs:
         with:
           terraform_version: 1.4.1
           cli_config_credentials_token: ${{ steps.auth.outputs.access_token }}
-          terraform_wrapper: false
 
       - name: Terraform Format
         id: fmt
@@ -50,12 +49,12 @@ jobs:
       - name: Terraform Init
         id: init
         run: terraform init -backend-config='environment/${{ env.ENVIRONMENT }}/backend.tfbackend' -reconfigure
-        shell: bash
+
 
       - name: Terraform Validate
         id: validate
         run: terraform validate -no-color
-        shell: bash
+
 
 
       - name: Terraform Plan
@@ -63,7 +62,6 @@ jobs:
         if: github.event_name == 'pull_request'
         run: |-
           terraform plan -var-file='environment/${{ env.ENVIRONMENT }}/terraform.tfvars' -var='environment=${{ env.ENVIRONMENT }}' 
-        shell: bash
 
       - name: Attach plan to PR
         id: attach-plan
