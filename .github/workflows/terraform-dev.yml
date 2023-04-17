@@ -103,9 +103,10 @@ jobs:
     - name: Terraform Plan
       id: plan
       run: |-
-        terraform plan -out tfplan.plan -var-file='environment/${{ env.ENVIRONMENT }}/terraform.tfvars' -var='environment=${{ env.ENVIRONMENT }}' \
+        terraform plan -out tfplan.plan -var-file='environment/${{ env.ENVIRONMENT }}/terraform.tfvars' -var='environment=${{ env.ENVIRONMENT }}'
         ls
       shell: bash
+
     - name: 'Save Plan'
       uses: actions/upload-artifact@v2
       with:
@@ -179,7 +180,7 @@ jobs:
     - name: Terraform Apply
       id: apply
       run: |-
-        terraform init -backend-config='environment/${{ env.ENVIRONMENT }}/backend.tfbackend' -reconfigureterraform init -backend-config='environment/${{ env.ENVIRONMENT }}/backend.tfbackend' -reconfigure 
+        terraform init -backend-config='environment/${{ env.ENVIRONMENT }}/backend.tfbackend' -reconfigureterraform init -backend-config='environment/${{ env.ENVIRONMENT }}/backend.tfbackend' -reconfigure
         terraform apply tf.plan    
 
       # End Terraform Development Steps
