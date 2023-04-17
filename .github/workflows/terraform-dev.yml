@@ -61,7 +61,7 @@ jobs:
         id: plan
         if: github.event_name == 'pull_request'
         run: |-
-          terraform plan -var-file='environment/${{ env.ENVIRONMENT }}/terraform.tfvars' -var='environment=${{ env.ENVIRONMENT }}' 
+          terraform plan -var-file='environment/${{ env.ENVIRONMENT }}/terraform.tfvars' -var='environment=${{ env.ENVIRONMENT }}' -no-color
 
       - name: Attach plan to PR
         id: attach-plan
