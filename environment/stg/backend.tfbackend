@@ -1,1 +1,3 @@
-name = "cloudrun-stg"
+workspaces { name = "cloudrun-stg" }
+hostname     = "app.terraform.io"
+organization = "rbadawi"

@@ -1,1 +1,3 @@
-name = "cloudrun-prd"
+workspaces { name = "cloudrun-prd" }
+hostname     = "app.terraform.io"
+organization = "rbadawi"
