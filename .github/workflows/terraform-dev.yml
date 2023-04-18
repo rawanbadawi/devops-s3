@@ -26,21 +26,21 @@ jobs:
         uses: actions/checkout@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-      - id: 'auth'
-        name: 'Authenticate to Google Cloud'
-        uses: 'google-github-actions/auth@v1'
-        with:
-          token_format: 'access_token'
-          WORKLOAD_IDENTITY_PROVIDER: ${{ env.WORKLOAD_IDENTITY_PROVIDER }}
-          SERVICE_ACCOUNT: ${{ env.SERVICE_ACCOUNT }}
-          access_token_lifetime: '3600s' # optional, default: '3600s' (1 hour)
+      # - id: 'auth'
+      #   name: 'Authenticate to Google Cloud'
+      #   uses: 'google-github-actions/auth@v1'
+      #   with:
+      #     token_format: 'access_token'
+      #     WORKLOAD_IDENTITY_PROVIDER: ${{ env.WORKLOAD_IDENTITY_PROVIDER }}
+      #     SERVICE_ACCOUNT: ${{ env.SERVICE_ACCOUNT }}
+      #     access_token_lifetime: '3600s' # optional, default: '3600s' (1 hour)
       # Terraform steps
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.4.1
-          cli_config_credentials_token: ${{ steps.auth.outputs.access_token }}
+          cli_config_credentials_token: ${{ secrets.TERRAFORM_API }}
 
       - name: Terraform Format
         id: fmt
