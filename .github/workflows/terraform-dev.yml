@@ -99,5 +99,5 @@ jobs:
         if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
 
         run: |- 
-        cp environment/${{ env.ENVIRONMENT }}/file.auto.tfvars ./ 
-        terraform apply  -auto-approve
+          cp environment/${{ env.ENVIRONMENT }}/file.auto.tfvars ./ 
+          terraform apply  -auto-approve
