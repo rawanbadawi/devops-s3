@@ -1,5 +1,9 @@
 provider "google" {}
 
 terraform {
-  backend "gcs" {}
+  cloud {
+    organization = "rbadawi"
+
+    workspaces {}
+  }
 }

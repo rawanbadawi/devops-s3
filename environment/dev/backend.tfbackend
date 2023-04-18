@@ -1,3 +1,2 @@
 
-bucket = "kamar-tf-state"
-prefix = "terraform/gcs-dev"
+name = "cloudrun-dev"
