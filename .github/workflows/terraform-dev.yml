@@ -62,8 +62,7 @@ jobs:
         id: plan
         if: github.event_name == 'pull_request'
         run: |-
-          cp environment/${{ env.ENVIRONMENT }}/file.auto.tfvars ./
-          terraform plan -no-color
+          terraform plan -var-file='environment/${{ env.ENVIRONMENT }}/dev.auto.tfvars' -no-color
 
       - name: Attach plan to PR
         id: attach-plan
@@ -97,6 +96,4 @@ jobs:
       - name: Terraform Apply
         id: apply
         if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
-        run: |- 
-          cp environment/${{ env.ENVIRONMENT }}/file.auto.tfvars ./ 
-          terraform apply  -auto-approve
+        run: terraform apply -var-file='environment/${{ env.ENVIRONMENT }}/dev.auto.tfvars'  -auto-approve
