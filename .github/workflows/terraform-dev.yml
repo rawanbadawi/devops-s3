@@ -34,6 +34,7 @@ jobs:
           WORKLOAD_IDENTITY_PROVIDER: ${{ env.WORKLOAD_IDENTITY_PROVIDER }}
           SERVICE_ACCOUNT: ${{ env.SERVICE_ACCOUNT }}
           access_token_lifetime: '3600s' # optional, default: '3600s' (1 hour)
+          create_credentials_file: true
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
@@ -65,8 +66,6 @@ jobs:
         if: github.event_name == 'pull_request'
         run: |-
           terraform plan -var-file='environment/${{ env.ENVIRONMENT }}/file.auto.tfvars' -no-color
-        env: 
-          GOOGLE_APPLICATION_CREDENTIALS=${{ steps.auth.outputs.access_token }}
 
       - name: Attach plan to PR
         id: attach-plan
