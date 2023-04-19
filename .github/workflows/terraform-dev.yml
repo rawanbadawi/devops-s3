@@ -34,12 +34,14 @@ jobs:
           WORKLOAD_IDENTITY_PROVIDER: ${{ env.WORKLOAD_IDENTITY_PROVIDER }}
           SERVICE_ACCOUNT: ${{ env.SERVICE_ACCOUNT }}
           access_token_lifetime: '3600s' # optional, default: '3600s' (1 hour)
-          
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.4.1
-          cli_config_credentials_token: ${{ steps.auth.outputs.access_token }}
+          cli_config_credentials_token: ${{ secrets.TERRAFORM_API}}
+          
+
 
       - name: Terraform Format
         id: fmt
@@ -49,6 +51,7 @@ jobs:
       - name: Terraform Init
         id: init
         run: terraform init -backend-config='environment/${{ env.ENVIRONMENT }}/backend.tfbackend' -reconfigure
+
 
 
       - name: Terraform Validate
@@ -62,6 +65,8 @@ jobs:
         if: github.event_name == 'pull_request'
         run: |-
           terraform plan -var-file='environment/${{ env.ENVIRONMENT }}/file.auto.tfvars' -no-color
+        env: 
+          GOOGLE_APPLICATION_CREDENTIALS=${{ steps.auth.outputs.access_token }}
 
       - name: Attach plan to PR
         id: attach-plan
