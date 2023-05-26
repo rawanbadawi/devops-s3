@@ -40,6 +40,7 @@ jobs:
         with:
           terraform_version: 1.4.1
           cli_config_credentials_token: ${{ steps.auth.outputs.access_token }}
+          
 
       - name: Terraform Format
         id: fmt

@@ -1,3 +1,4 @@
 
-bucket = "kamar-tf-state"
-prefix = "terraform/gcs-dev"
+workspaces { name = "cloudrun-dev" }
+hostname     = "app.terraform.io"
+organization = "rbadawi"

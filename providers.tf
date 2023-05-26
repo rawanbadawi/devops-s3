@@ -1,5 +1,5 @@
 provider "google" {}
 
 terraform {
-  backend "gcs" {}
+  backend "remote" {}
 }
